@@ -1,9 +1,28 @@
 package Net::IPAddress::Filter;
 
-# ABSTRACT: A compact and fast IP Address range filter
-
 use strict;
 use warnings;
+
+# ABSTRACT: A compact and fast IP Address range filter
+# VERSION
+
+=head1 NAME
+
+Net::IPAddress::Filter - A compact and fast IP Address range filter
+
+=head1 DESCRIPTION
+
+
+=head1 SYNOPSIS
+
+    my $filter = Net::IPAddress::Filter->new();
+
+    $filter->add_rule('10.0.0.10', '10.0.0.50');
+    $filter->add_rule('192.168.1.1');
+
+    print "In filter\n" if $filter->filter('10.0.0.25');
+
+=cut
 
 use Set::IntervalTree;
 
@@ -30,8 +49,8 @@ sub new {
 =head2 add_rule( ) 
 
 Expects:
-    $start_ip : A dotted quad IP address string.
-    $end_ip : An optional otted quad IP address string. Defaults to $start_ip.
+    $start_ip - A dotted quad IP address string.
+    $end_ip   - An optional otted quad IP address string. Defaults to $start_ip.
 
 Returns:
     None.
@@ -48,9 +67,34 @@ sub add_rule {
         ( $start_num, $end_num ) = ( $end_num, $start_num );
     }
 
-    $self->{filter}->insert( 1, $start_num, $end_num );
+    # Set::IntervalTree uses half-closed intervals, so need to go 1 higher and
+    # lower than the actual ranges.
+    $self->{filter}->insert( 1, $start_num - 1, $end_num + 1 );
 
     return;
+}
+
+=head2 filter( ) 
+
+Test whether a given IP address is in one of the ranges in the filter.
+
+Expects:
+    $test_ip - A dotted quad IP address string.
+
+Returns:
+    1 if test IP is in one of the ranges.
+    0 otherwise.
+
+=cut
+
+sub filter {
+    my ($self, $test_ip) = @_;
+
+    my $test_num = _ip_address_to_number($test_ip);
+
+    my $found = $self->{filter}->fetch($test_num) || return 0;
+
+    return scalar @$found ? 1 : 0;
 }
 
 =head2 _ip_address_to_number( ) 
