@@ -6,27 +6,32 @@ use warnings;
 # ABSTRACT: A compact and fast IP Address range filter
 # VERSION
 
-=head1 NAME
-
-Net::IPAddress::Filter - A compact and fast IP Address range filter
-
-=head1 DESCRIPTION
-
-
 =head1 SYNOPSIS
 
     my $filter = Net::IPAddress::Filter->new();
 
-    $filter->add_rule('10.0.0.10', '10.0.0.50');
-    $filter->add_rule('192.168.1.1');
+    $filter->add_range('10.0.0.10', '10.0.0.50');
+    $filter->add_range('192.168.1.1');
 
-    print "In filter\n" if $filter->filter('10.0.0.25');
+    print "In filter\n" if $filter->in_filter('10.0.0.25');
+
+=head1 DESCRIPTION
+
+Net::IPAddress::Filter uses the XS module L<Set::IntervalTree> under the hood.
+An Interval Tree is a data structure optimised for fast insertions and searches
+of ranges, so sequential scans are avoided. The XS tree data structure is more
+compact than a pure Perl version of the same.
+
+In initial testing on an AMD Athlon(tm) 64 X2 Dual Core Processor 4200+,
+Net::IPAddress::Filter did about 60k range inserts/sec, and about 100k
+lookups per second. The process memory size grew by about 1MB per 7,500 ranges
+inserted.
 
 =cut
 
-use Set::IntervalTree;
+use Set::IntervalTree;    # XS module.
 
-=head2 new ( )
+=method new ( )
 
 Constructs new blank filter object.
 
@@ -46,23 +51,24 @@ sub new {
     return bless $self, $class;
 }
 
-=head2 add_rule( ) 
+=method add_range( ) 
 
 Expects:
     $start_ip - A dotted quad IP address string.
-    $end_ip   - An optional otted quad IP address string. Defaults to $start_ip.
+    $end_ip   - An optional dotted quad IP address string. Defaults to $start_ip.
 
 Returns:
     None.
 
 =cut
 
-sub add_rule {
+sub add_range {
     my ( $self, $start_ip, $end_ip ) = @_;
 
     my $start_num = _ip_address_to_number($start_ip);
     my $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
 
+    # Guarantee that the start <= end
     if ( $end_num < $start_num ) {
         ( $start_num, $end_num ) = ( $end_num, $start_num );
     }
@@ -74,7 +80,7 @@ sub add_rule {
     return;
 }
 
-=head2 filter( ) 
+=method in_filter( ) 
 
 Test whether a given IP address is in one of the ranges in the filter.
 
@@ -87,17 +93,17 @@ Returns:
 
 =cut
 
-sub filter {
-    my ($self, $test_ip) = @_;
+sub in_filter {
+    my ( $self, $test_ip ) = @_;
 
     my $test_num = _ip_address_to_number($test_ip);
 
-    my $found = $self->{filter}->fetch($test_num) || return 0;
+    my $found = $self->{filter}->fetch( $test_num, $test_num ) || return 0;
 
     return scalar @$found ? 1 : 0;
 }
 
-=head2 _ip_address_to_number( ) 
+=func _ip_address_to_number( ) 
 
 Utility function to convert a dotted quad IP address to a number. 
 
@@ -118,3 +124,17 @@ sub _ip_address_to_number {
 }
 
 1;
+
+__END__
+
+=pod
+
+=head1 SEE ALSO
+
+=for :list
+* L<Config::IPFilter> - Moose-based pure Perl IP address filter.
+* L<Net::BitTorrent::Network::IPFilter> - Moose-based pure Perl IP address filter.
+* L<NET::IPFilter> - Pure Perl extension for Accessing eMule / Bittorrent
+IPFilter.dat Files and checking a given IP against this ipfilter.dat IP Range. 
+
+=cut
