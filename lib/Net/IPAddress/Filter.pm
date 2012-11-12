@@ -51,7 +51,7 @@ sub new {
     return bless $self, $class;
 }
 
-=method add_range( ) 
+=method add_range( )
 
 Expects:
     $start_ip - A dotted quad IP address string.
@@ -80,7 +80,7 @@ sub add_range {
     return;
 }
 
-=method in_filter( ) 
+=method in_filter( )
 
 Test whether a given IP address is in one of the ranges in the filter.
 
@@ -103,9 +103,9 @@ sub in_filter {
     return scalar @$found ? 1 : 0;
 }
 
-=func _ip_address_to_number( ) 
+=func _ip_address_to_number( )
 
-Utility function to convert a dotted quad IP address to a number. 
+Utility function to convert a dotted quad IP address to a number.
 
 TODO: Handle IPv6 addresses as well.
 
@@ -141,6 +141,6 @@ Set::IntervalTree uses long ints internally, and IPv6 needs 128-bit numbers.
 * L<Config::IPFilter> - Moose-based pure Perl IP address filter.
 * L<Net::BitTorrent::Network::IPFilter> - Moose-based pure Perl IP address filter.
 * L<NET::IPFilter> - Pure Perl extension for Accessing eMule / Bittorrent
-IPFilter.dat Files and checking a given IP against this ipfilter.dat IP Range. 
+IPFilter.dat Files and checking a given IP against this ipfilter.dat IP Range.
 
 =cut
