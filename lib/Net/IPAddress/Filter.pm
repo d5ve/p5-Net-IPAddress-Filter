@@ -129,6 +129,12 @@ __END__
 
 =pod
 
+=head1 TODO
+
+=for :list
+* Support for IPv6 Addresses. This would need a lot of work, as
+Set::IntervalTree uses long ints internally, and IPv6 needs 128-bit numbers.
+
 =head1 SEE ALSO
 
 =for :list
