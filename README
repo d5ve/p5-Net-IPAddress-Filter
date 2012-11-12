@@ -1,0 +1,82 @@
+NAME
+    Net::IPAddress::Filter - A compact and fast IP Address range filter
+
+VERSION
+    version 20121112
+
+SYNOPSIS
+        my $filter = Net::IPAddress::Filter->new();
+
+        $filter->add_range('10.0.0.10', '10.0.0.50');
+        $filter->add_range('192.168.1.1');
+
+        print "In filter\n" if $filter->in_filter('10.0.0.25');
+
+DESCRIPTION
+    Net::IPAddress::Filter uses the XS module Set::IntervalTree under the
+    hood. An Interval Tree is a data structure optimised for fast insertions
+    and searches of ranges, so sequential scans are avoided. The XS tree
+    data structure is more compact than a pure Perl version of the same.
+
+    In initial testing on an AMD Athlon(tm) 64 X2 Dual Core Processor 4200+,
+    Net::IPAddress::Filter did about 60k range inserts/sec, and about 100k
+    lookups per second. The process memory size grew by about 1MB per 7,500
+    ranges inserted.
+
+METHODS
+  new ( )
+    Constructs new blank filter object.
+
+    Expects: None.
+
+    Returns: Blessed filter object.
+
+  add_range( )
+    Expects: $start_ip - A dotted quad IP address string. $end_ip - An
+    optional dotted quad IP address string. Defaults to $start_ip.
+
+    Returns: None.
+
+  in_filter( )
+    Test whether a given IP address is in one of the ranges in the filter.
+
+    Expects: $test_ip - A dotted quad IP address string.
+
+    Returns: 1 if test IP is in one of the ranges. 0 otherwise.
+
+FUNCTIONS
+  _ip_address_to_number( )
+    Utility function to convert a dotted quad IP address to a number.
+
+    TODO: Handle IPv6 addresses as well.
+
+    Expects: A dotted quad IP address string.
+
+    Returns: The integer representation of the IP address.
+
+TODO
+    *   Support for IPv6 Addresses. This would need a lot of work, as
+
+        Set::IntervalTree uses long ints internally, and IPv6 needs 128-bit
+        numbers.
+
+SEE ALSO
+    *   Config::IPFilter - Moose-based pure Perl IP address filter.
+
+    *   Net::BitTorrent::Network::IPFilter - Moose-based pure Perl IP
+        address filter.
+
+    *   NET::IPFilter - Pure Perl extension for Accessing eMule / Bittorrent
+
+        IPFilter.dat Files and checking a given IP against this ipfilter.dat
+        IP Range.
+
+AUTHOR
+    Dave Webb <Net-IPAddress-Filter@d5ve.com>
+
+COPYRIGHT AND LICENSE
+    This software is copyright (c) 2012 by Dave Webb.
+
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
+
