@@ -29,7 +29,10 @@ inserted.
 
 =cut
 
+use Net::CIDR::Lite;
 use Set::IntervalTree;    # XS module.
+
+our $CIDR_REGEX = qr{/ \d+ \z}xms;
 
 =method new ( )
 
@@ -53,20 +56,42 @@ sub new {
 
 =method add_range( )
 
+Add a range of IP addresses to the filter. 
+
+The range can be specified in three ways.
+
+    1) As a single IP address.
+
+    2) As a pair of IP addresses.
+
+    3) As a single IP address with a CIDR suffix. In this case, any second IP
+    address passed in by the caller will be ignored.
+
 Expects:
-    $start_ip - A dotted quad IP address string.
+    $start_ip - A dotted quad IP address string with optional CIDR suffix.
     $end_ip   - An optional dotted quad IP address string. Defaults to $start_ip.
 
 Returns:
-    None.
+    1 if it didn't die in the attempt - insert() returns undef.
 
 =cut
 
 sub add_range {
     my ( $self, $start_ip, $end_ip ) = @_;
 
-    my $start_num = _ip_address_to_number($start_ip);
-    my $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
+    my ($start_num, $end_num);
+
+    if ( $start_ip =~ $CIDR_REGEX ) {
+        my $cidr = Net::CIDR::Lite->new;
+        $cidr->add($start_ip);
+        my ( $start_cidr, $end_cidr ) = split /-/, @{ $cidr->list_range() }[0];
+        $start_num = _ip_address_to_number($start_cidr);
+        $end_num = _ip_address_to_number($end_cidr);    
+    }
+    else {
+        $start_num = _ip_address_to_number($start_ip);
+        $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
+    }
 
     # Guarantee that the start <= end
     if ( $end_num < $start_num ) {
@@ -75,9 +100,9 @@ sub add_range {
 
     # Set::IntervalTree uses half-closed intervals, so need to go 1 higher and
     # lower than the actual ranges.
-    $self->{filter}->insert( 1, $start_num - 1, $end_num + 1 );
+    $self->{filter}->insert(1, $start_num - 1, $end_num + 1 );
 
-    return;
+    return 1;
 }
 
 =method in_filter( )
@@ -88,8 +113,7 @@ Expects:
     $test_ip - A dotted quad IP address string.
 
 Returns:
-    1 if test IP is in one of the ranges.
-    0 otherwise.
+    Number of ranges which span the test IP.
 
 =cut
 
@@ -100,7 +124,7 @@ sub in_filter {
 
     my $found = $self->{filter}->fetch( $test_num, $test_num ) || return 0;
 
-    return scalar @$found ? 1 : 0;
+    return scalar @$found;
 }
 
 =func _ip_address_to_number( )
@@ -120,7 +144,6 @@ Returns:
 sub _ip_address_to_number {
 
     return unpack 'N', pack 'C4', split '\.', shift;
-
 }
 
 1;

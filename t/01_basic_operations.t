@@ -10,44 +10,78 @@ use_ok('Net::IPAddress::Filter') or die "Unable to compile Net::IPAddress::Filte
 
 my $filter = new_ok('Net::IPAddress::Filter') or die "Unable to construct a Net::IPAddress::Filter";
 
-# Check off-by-one errors for a single-address range.
-is($filter->in_filter('192.168.1.0'), 0, "192.168.1.0 not yet in filter");
-is($filter->in_filter('192.168.1.1'), 0, "192.168.1.1 not yet in filter");
-is($filter->in_filter('192.168.1.2'), 0, "192.168.1.2 not yet in filter");
-is($filter->add_range('192.168.1.1'), undef, "Adding 192.168.1.1 to filter");
-is($filter->in_filter('192.168.1.0'), 0, "192.168.1.0 still not in filter");
-is($filter->in_filter('192.168.1.1'), 1, "192.168.1.1 now in filter");
-is($filter->in_filter('192.168.1.2'), 0, "192.168.1.2 still not in filter");
+{
+    # Check off-by-one errors for a single-address range.
+    my $filter = Net::IPAddress::Filter->new();
+    ok(!$filter->in_filter('192.168.1.0'), "192.168.1.0 not yet in filter");
+    ok(!$filter->in_filter('192.168.1.1'), "192.168.1.1 not yet in filter");
+    ok(!$filter->in_filter('192.168.1.2'), "192.168.1.2 not yet in filter");
+    ok($filter->add_range('192.168.1.1'),  "Adding 192.168.1.1 to filter");
+    ok(!$filter->in_filter('192.168.1.0'), "192.168.1.0 still not in filter");
+    ok($filter->in_filter('192.168.1.1'),  "192.168.1.1 now in filter");
+    ok(!$filter->in_filter('192.168.1.2'), "192.168.1.2 still not in filter");
+}
 
-# Check off-by-one errors for an actual range.
-is($filter->in_filter('10.1.100.0'), 0, "10.1.100.0 not yet in filter");
-is($filter->in_filter('10.1.100.1'), 0, "10.1.100.1 not yet in filter");
-is($filter->in_filter('10.1.100.2'), 0, "10.1.100.2 not yet in filter");
-is($filter->in_filter('10.1.100.98'), 0, "10.1.100.98 not yet in filter");
-is($filter->in_filter('10.1.100.99'), 0, "10.1.100.99 not yet in filter");
-is($filter->in_filter('10.1.100.100'), 0, "10.1.100.100 not yet in filter");
-is($filter->add_range('10.1.100.1', '10.1.100.99'), undef, "Adding ('10.1.100.1', '10.1.100.99') to filter");
-is($filter->in_filter('10.1.100.0'), 0, "10.1.100.0 still not in filter");
-is($filter->in_filter('10.1.100.1'), 1, "10.1.100.1 now in filter");
-is($filter->in_filter('10.1.100.2'), 1, "10.1.100.2 now in filter");
-is($filter->in_filter('10.1.100.98'), 1, "10.1.100.98 now in filter");
-is($filter->in_filter('10.1.100.99'), 1, "10.1.100.99 now in filter");
-is($filter->in_filter('10.1.100.100'), 0, "10.1.100.100 still not in filter");
+{
+    # Check off-by-one errors for an actual range.
+    my $filter = Net::IPAddress::Filter->new();
+    ok(!$filter->in_filter('10.1.100.0'),               "10.1.100.0 not yet in filter");
+    ok(!$filter->in_filter('10.1.100.1'),               "10.1.100.1 not yet in filter");
+    ok(!$filter->in_filter('10.1.100.2'),               "10.1.100.2 not yet in filter");
+    ok(!$filter->in_filter('10.1.100.98'),              "10.1.100.98 not yet in filter");
+    ok(!$filter->in_filter('10.1.100.99'),              "10.1.100.99 not yet in filter");
+    ok(!$filter->in_filter('10.1.100.100'),             "10.1.100.100 not yet in filter");
+    ok($filter->add_range('10.1.100.1', '10.1.100.99'), "Adding ('10.1.100.1', '10.1.100.99') to filter");
+    ok(!$filter->in_filter('10.1.100.0'),               "10.1.100.0 still not in filter");
+    ok($filter->in_filter('10.1.100.1'),                "10.1.100.1 now in filter");
+    ok($filter->in_filter('10.1.100.2'),                "10.1.100.2 now in filter");
+    ok($filter->in_filter('10.1.100.98'),               "10.1.100.98 now in filter");
+    ok($filter->in_filter('10.1.100.99'),               "10.1.100.99 now in filter");
+    ok(!$filter->in_filter('10.1.100.100'),             "10.1.100.100 still not in filter");
+}
 
-# Check out-of-order range
-is($filter->add_range('127.0.0.10', '127.0.0.1'), undef, "Adding ('127.0.0.10', '127.0.0.1') to filter");
-is($filter->in_filter('127.0.0.5'), 1, "127.0.0.5 now in filter");
+{
+    # Check out-of-order range
+    my $filter = Net::IPAddress::Filter->new();
+    ok($filter->add_range('127.0.0.10', '127.0.0.1'), "Adding ('127.0.0.10', '127.0.0.1') to filter");
+    ok($filter->in_filter('127.0.0.5'),               "127.0.0.5 now in filter");
+}
 
-# Check zero-padded inputs a la ipfilter.dat
-is($filter->add_range('127.000.000.099', '127.000.000.099'), undef, "Adding ('127.000.000.099', '127.000.000.099') to filter");
-is($filter->in_filter('127.000.000.099'), 1, "127.000.000.099 now in filter");
+{
+    # Check zero-padded inputs a la ipfilter.dat
+    my $filter = Net::IPAddress::Filter->new();
+    ok($filter->add_range('127.000.000.099', '127.000.000.099'), "Adding ('127.000.000.099', '127.000.000.099') to filter");
+    ok($filter->in_filter('127.000.000.099'),                    "127.000.000.099 now in filter");
+}
 
-# Check overlapping ranges
-is($filter->add_range('172.16.0.100', '172.16.0.200'), undef, "Adding ('172.16.0.100', '172.16.0.200') to filter");
-is($filter->add_range('172.16.0.199', '172.16.0.255'), undef, "Adding ('172.16.0.199', '172.16.0.255') to filter");
-is($filter->in_filter('172.16.0.199'), 1, "172.16.0.199 now in filter");
-is($filter->in_filter('172.16.0.200'), 1, "172.16.0.200 now in filter");
-is($filter->in_filter('172.16.0.201'), 1, "172.16.0.201 now in filter");
+{
+    # Check overlapping ranges
+    my $filter = Net::IPAddress::Filter->new();
+    ok($filter->add_range('172.16.0.100', '172.16.0.200'), "Adding ('172.16.0.100', '172.16.0.200') to filter");
+    ok($filter->add_range('172.16.0.199', '172.16.0.255'), "Adding ('172.16.0.199', '172.16.0.255') to filter");
+    ok($filter->in_filter('172.16.0.199'),                 "172.16.0.199 now in filter");
+    ok($filter->in_filter('172.16.0.200'),                 "172.16.0.200 now in filter");
+    ok($filter->in_filter('172.16.0.201'),                 "172.16.0.201 now in filter");
+}
+
+{
+    # Check CIDR ranges.
+    my $filter = Net::IPAddress::Filter->new();
+    ok($filter->add_range('127.1.0.0/24'),   "Adding CIDR 127.1.0.0/24 to filter");
+    ok(!$filter->in_filter('127.0.255.255'), "127.0.255.255 not in filter");
+    ok($filter->in_filter('127.1.0.0'),      "127.0.0.0 now in filter");
+    ok($filter->in_filter('127.1.0.255'),    "127.0.0.255 now in filter");
+    ok(!$filter->in_filter('127.1.1.0'),     "127.0.1.0 not in filter");
+
+}
+
+TODO: {
+    local $TODO = "2^31 bug in Set::IntervalTree which Net::IPAddress::Filter uses. See https://rt.cpan.org/Ticket/Display.html?id=81199";
+
+    my $filter = Net::IPAddress::Filter->new();
+    ok($filter->add_range('0.0.0.1', '0.0.0.2'), "Adding ('0.0.0.1', '0.0.0.2') to filter");
+    ok(!$filter->in_filter('128.0.0.1'),         "128.0.0.1 not in filter (2^31 bug)");
+}
 
 done_testing;
 
