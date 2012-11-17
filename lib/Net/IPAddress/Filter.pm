@@ -10,21 +10,41 @@ use warnings;
 
     my $filter = Net::IPAddress::Filter->new();
 
+    #
+    # Simple usage:
+    #
     $filter->add_range('10.0.0.10', '10.0.0.50');
     $filter->add_range('192.168.1.1');
-
     print "In filter\n" if $filter->in_filter('10.0.0.25');
 
+    #
+    # CIDR syntax
+    #
+    $filter->add_range('172.168.0.0/24');
+    # Equivalent to:
+    $filter->add_range('172.168.0.0', '172.168.0.255');
+
+    #
+    # Annotated ranges
+    #
+    $filter->add_range_with_value('IANA-reserved range', '10.0.0.0', '10.255.255.255');
+    my $array_ref = $filter->get_matches('10.128.0.0'); # [ 'IANA-reserved range' ]
+    
+
 =head1 DESCRIPTION
+
+Net::IPAddress::Filter can be used to check if a given IP address is contained
+in a set of filtered ranges. A range can contain any number of addresses, and
+ranges can overlap.
 
 Net::IPAddress::Filter uses the XS module L<Set::IntervalTree> under the hood.
 An Interval Tree is a data structure optimised for fast insertions and searches
 of ranges, so sequential scans are avoided. The XS tree data structure is more
 compact than a pure Perl version of the same.
 
-In initial testing on an AMD Athlon(tm) 64 X2 Dual Core Processor 4200+,
-Net::IPAddress::Filter did about 60k range inserts/sec, and about 100k
-lookups per second. The process memory size grew by about 1MB per 7,500 ranges
+In testing on an AMD Athlon(tm) 64 X2 Dual Core Processor 4200+,
+Net::IPAddress::Filter did about 60k range inserts per second, and about 140k
+lookups per second. The process memory size grew by about 1MB per 10,000 ranges
 inserted.
 
 =cut
@@ -56,7 +76,7 @@ sub new {
 
 =method add_range( )
 
-Add a range of IP addresses to the filter. 
+Add a range of IP addresses to the filter.
 
 The range can be specified in three ways.
 
@@ -79,28 +99,41 @@ Returns:
 sub add_range {
     my ( $self, $start_ip, $end_ip ) = @_;
 
-    my ($start_num, $end_num);
-
-    if ( $start_ip =~ $CIDR_REGEX ) {
-        my $cidr = Net::CIDR::Lite->new;
-        $cidr->add($start_ip);
-        my ( $start_cidr, $end_cidr ) = split /-/, @{ $cidr->list_range() }[0];
-        $start_num = _ip_address_to_number($start_cidr);
-        $end_num = _ip_address_to_number($end_cidr);    
-    }
-    else {
-        $start_num = _ip_address_to_number($start_ip);
-        $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
-    }
-
-    # Guarantee that the start <= end
-    if ( $end_num < $start_num ) {
-        ( $start_num, $end_num ) = ( $end_num, $start_num );
-    }
+    my ($start_num, $end_num) = _get_start_and_end_numbers($start_ip, $end_ip);
 
     # Set::IntervalTree uses half-closed intervals, so need to go 1 higher and
     # lower than the actual ranges.
-    $self->{filter}->insert(1, $start_num - 1, $end_num + 1 );
+    $self->{filter}->insert($start_ip . ($end_ip ? ",$end_ip" : ''), $start_num - 1, $end_num + 1 );
+
+    return 1;
+}
+
+=method add_range_with_value( )
+
+Add a range of IP addresses to the filter, plus associate a scalar value with
+that range.
+
+I couldn't think of a neat way to handle an optional value and an optional
+range end in the same method, otherwise I would have put this in add_range().
+
+Expects:
+    $value    - A perl scalar to associate with this range.
+    $start_ip - A dotted quad IP address string with optional CIDR suffix.
+    $end_ip   - An optional dotted quad IP address string. Defaults to $start_ip.
+
+Returns:
+    1 if it didn't die in the attempt - insert() returns undef.
+
+=cut
+
+sub add_range_with_value {
+    my ( $self, $value, $start_ip, $end_ip ) = @_;
+
+    my ($start_num, $end_num) = _get_start_and_end_numbers($start_ip, $end_ip);
+
+    # Set::IntervalTree uses half-closed intervals, so need to go 1 higher and
+    # lower than the actual ranges.
+    $self->{filter}->insert($value, $start_num - 1, $end_num + 1 );
 
     return 1;
 }
@@ -125,6 +158,67 @@ sub in_filter {
     my $found = $self->{filter}->fetch( $test_num, $test_num ) || return 0;
 
     return scalar @$found;
+}
+
+=method get_matches( )
+
+Find any matching ranges for a given IP address. Each range holds a value field,
+and these values will be returned.
+
+Expects:
+    $test_ip - A dotted quad IP address string.
+
+Returns:
+    The value fields for any ranges spanning the test IP.
+
+=cut
+
+sub get_matches {
+    my ( $self, $test_ip ) = @_;
+
+    my $test_num = _ip_address_to_number($test_ip);
+
+    return $self->{filter}->fetch( $test_num, $test_num );
+
+}
+
+=func _get_start_and_end_numbers( )
+
+Utility function to convert the given IP addresses into numbers. It handles
+CIDR, and optional or out-of-order args.
+
+Expects:
+    $start_ip - A dotted quad IP address string with optional CIDR suffix.
+    $end_ip   - An optional dotted quad IP address string. Defaults to $start_ip.
+
+Returns:
+    Ordered pair of integers.
+
+=cut
+
+sub _get_start_and_end_numbers {
+    my ( $start_ip, $end_ip ) = @_;
+
+    my ($start_num, $end_num);
+
+    if ( $start_ip =~ $CIDR_REGEX ) {
+        my $cidr = Net::CIDR::Lite->new;
+        $cidr->add($start_ip);
+        my ( $start_cidr, $end_cidr ) = split /-/, @{ $cidr->list_range() }[0];
+        $start_num = _ip_address_to_number($start_cidr);
+        $end_num = _ip_address_to_number($end_cidr);
+    }
+    else {
+        $start_num = _ip_address_to_number($start_ip);
+        $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
+    }
+
+    # Guarantee that the start <= end
+    if ( $end_num < $start_num ) {
+        ( $start_num, $end_num ) = ( $end_num, $start_num );
+    }
+
+    return ( $start_num, $end_num );
 }
 
 =func _ip_address_to_number( )
@@ -152,6 +246,13 @@ __END__
 
 =pod
 
+=head1 CAVEATS AND TIPS
+
+=for :list
+* L<Set::IntervalTree> versions < 0.03 have a known bug where
+in_filter('128.0.0.0') will give a false positive if there are any ranges in
+the filter. 128.0.0.0 is 2^31. This is fixed in version 0.03 onwards.
+
 =head1 TODO
 
 =for :list
@@ -165,5 +266,16 @@ Set::IntervalTree uses long ints internally, and IPv6 needs 128-bit numbers.
 * L<Net::BitTorrent::Network::IPFilter> - Moose-based pure Perl IP address filter.
 * L<NET::IPFilter> - Pure Perl extension for Accessing eMule / Bittorrent
 IPFilter.dat Files and checking a given IP against this ipfilter.dat IP Range.
+
+=head1 BUGS OR FEATURE REQUESTS
+
+See F<https://rt.cpan.org/Public/Dist/Display.html?Name=Net-IPAddress-Filter>
+to report and view bugs, or to request features.
+
+Alternatively, email F<bug-Net-IPAddress-Filter@rt.cpan.org>
+
+=head1 REPOSITORY
+
+L<Net::IPAddress::Filter> is hosted on github at F<https://github.com/d5ve/p5-Net-IPAddress-Filter.git>
 
 =cut

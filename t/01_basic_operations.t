@@ -75,12 +75,23 @@ my $filter = new_ok('Net::IPAddress::Filter') or die "Unable to construct a Net:
 
 }
 
-TODO: {
-    local $TODO = "2^31 bug in Set::IntervalTree which Net::IPAddress::Filter uses. See https://rt.cpan.org/Ticket/Display.html?id=81199";
-
+SKIP: {
+    if ( $Set::IntervalTree::VERSION < 0.03 ) {
+        skip("2^31 bug in Set::IntervalTree which Net::IPAddress::Filter uses. Fixed in 0.03", 2);
+    }
     my $filter = Net::IPAddress::Filter->new();
     ok($filter->add_range('0.0.0.1', '0.0.0.2'), "Adding ('0.0.0.1', '0.0.0.2') to filter");
-    ok(!$filter->in_filter('128.0.0.1'),         "128.0.0.1 not in filter (2^31 bug)");
+    ok(!$filter->in_filter('128.0.0.0'),         "128.0.0.0 not in filter (2^31 bug)");
+}
+
+{
+    # Check setting and getting scalar values with each range.
+    my $filter = Net::IPAddress::Filter->new();
+    my $value1 = "0.0.0.1 ==> 0.0.0.2";
+    ok($filter->add_range_with_value($value1, '0.0.0.1', '0.0.0.2'), "Adding ('0.0.0.1', '0.0.0.2') to filter");
+    my $value2 = 'CIDR 0.0.0.1/24';
+    ok($filter->add_range_with_value($value2, '0.0.0.1/24'), "Adding '0.0.0.1/24' to filter");
+    is_deeply($filter->get_matches('0.0.0.1'), [ $value1, $value2 ], "get_matches() returns expected value fields");
 }
 
 done_testing;
