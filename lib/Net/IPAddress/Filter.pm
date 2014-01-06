@@ -155,7 +155,7 @@ sub in_filter {
 
     my $test_num = _ip_address_to_number($test_ip);
 
-    my $found = $self->{filter}->fetch( $test_num, $test_num ) || return 0;
+    my $found = $self->{filter}->fetch( $test_num, $test_num + 1 ) || return 0;
 
     return scalar @$found;
 }
@@ -178,7 +178,7 @@ sub get_matches {
 
     my $test_num = _ip_address_to_number($test_ip);
 
-    return $self->{filter}->fetch( $test_num, $test_num );
+    return $self->{filter}->fetch( $test_num, $test_num + 1 );
 
 }
 
@@ -212,6 +212,12 @@ sub _get_start_and_end_numbers {
         $start_num = _ip_address_to_number($start_ip);
         $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
     }
+
+    # https://rt.cpan.org/Ticket/Display.html?id=91861
+    # Make sure that start and end are different, as Set::IntervalTree >= 0.8
+    # die()s if they're the same.
+    # NOTE: We then need to check in in_filter() to make sure that we've not matched incorrectly.
+    $end_num ++ if $start_num == $end_num;
 
     # Guarantee that the start <= end
     if ( $end_num < $start_num ) {
