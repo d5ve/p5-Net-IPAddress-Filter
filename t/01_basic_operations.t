@@ -94,6 +94,7 @@ SKIP: {
     my $value2 = 'CIDR 0.0.0.1/24';
     ok($filter->add_range_with_value($value2, '0.0.0.1/24'), "Adding '0.0.0.1/24' to filter");
     is_deeply($filter->get_matches('0.0.0.1'), [ $value1, $value2 ], "get_matches() returns expected value fields");
+    is_deeply($filter->get_matches('0.0.0.3'), [], "get_matches() off-by-one check");
 }
 
 done_testing;
