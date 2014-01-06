@@ -6,6 +6,8 @@ use warnings;
 use Test::More;
 use English qw(-no_match_vars);
 
+use lib './lib';
+
 use_ok('Net::IPAddress::Filter') or die "Unable to compile Net::IPAddress::Filter" ;
 
 my $filter = new_ok('Net::IPAddress::Filter') or die "Unable to construct a Net::IPAddress::Filter";
