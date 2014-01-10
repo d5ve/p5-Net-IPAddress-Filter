@@ -101,9 +101,14 @@ sub add_range {
 
     my ($start_num, $end_num) = _get_start_and_end_numbers($start_ip, $end_ip);
 
-    # Set::IntervalTree uses half-closed intervals, so need to go 1 higher and
-    # lower than the actual ranges.
-    $self->{filter}->insert($start_ip . ($end_ip ? ",$end_ip" : ''), $start_num - 1, $end_num + 1 );
+    # Different versions of Set::IntervalTree use different-closed intervals,
+    # so need to allow for that.
+    if ( $Set::IntervalTree::VERSION < 0.08 ) {
+        $self->{filter}->insert($start_ip . ($end_ip ? ",$end_ip" : ''), $start_num - 1, $end_num + 1 );
+    }
+    else {
+        $self->{filter}->insert($start_ip . ($end_ip ? ",$end_ip" : ''), $start_num, $end_num + 1 );
+    }
 
     return 1;
 }
@@ -131,9 +136,14 @@ sub add_range_with_value {
 
     my ($start_num, $end_num) = _get_start_and_end_numbers($start_ip, $end_ip);
 
-    # Set::IntervalTree uses half-closed intervals, so need to go 1 higher and
-    # lower than the actual ranges.
-    $self->{filter}->insert($value, $start_num - 1, $end_num + 1 );
+    # Different versions of Set::IntervalTree use different-closed intervals,
+    # so need to allow for that.
+    if ( $Set::IntervalTree::VERSION < 0.08 ) {
+        $self->{filter}->insert( $value, $start_num - 1, $end_num + 1 );
+    }
+    else {
+        $self->{filter}->insert( $value, $start_num, $end_num + 1 );
+    }
 
     return 1;
 }
@@ -212,12 +222,6 @@ sub _get_start_and_end_numbers {
         $start_num = _ip_address_to_number($start_ip);
         $end_num = $end_ip ? _ip_address_to_number($end_ip) : $start_num;
     }
-
-    # https://rt.cpan.org/Ticket/Display.html?id=91861
-    # Make sure that start and end are different, as Set::IntervalTree >= 0.8
-    # die()s if they're the same.
-    # NOTE: We then need to check in in_filter() to make sure that we've not matched incorrectly.
-    $end_num ++ if $start_num == $end_num;
 
     # Guarantee that the start <= end
     if ( $end_num < $start_num ) {
