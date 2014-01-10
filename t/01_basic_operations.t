@@ -69,11 +69,16 @@ my $filter = new_ok('Net::IPAddress::Filter') or die "Unable to construct a Net:
 {
     # Check CIDR ranges.
     my $filter = Net::IPAddress::Filter->new();
-    ok($filter->add_range('127.1.0.0/24'),   "Adding CIDR 127.1.0.0/24 to filter");
+    ok($filter->add_range('127.1.0.0/32'),   "Adding CIDR 127.1.0.0/32 to filter");
     ok(!$filter->in_filter('127.0.255.255'), "127.0.255.255 not in filter");
-    ok($filter->in_filter('127.1.0.0'),      "127.0.0.0 now in filter");
-    ok($filter->in_filter('127.1.0.255'),    "127.0.0.255 now in filter");
-    ok(!$filter->in_filter('127.1.1.0'),     "127.0.1.0 not in filter");
+    ok($filter->in_filter('127.1.0.0'),      "127.1.0.0 now in filter");
+    ok(!$filter->in_filter('127.1.0.1'),     "127.1.0.1 not in filter");
+
+    ok($filter->add_range('127.100.0.0/24'),  "Adding CIDR 127.100.0.0/24 to filter");
+    ok(!$filter->in_filter('127.99.255.255'), "127.99.255.255 not in filter");
+    ok($filter->in_filter('127.100.0.0'),     "127.100.0.0 now in filter");
+    ok($filter->in_filter('127.100.0.255'),   "127.100.0.255 now in filter");
+    ok(!$filter->in_filter('127.100.1.0'),    "127.100.1.0 not in filter");
 
 }
 
@@ -91,9 +96,10 @@ SKIP: {
     my $filter = Net::IPAddress::Filter->new();
     my $value1 = "0.0.0.1 ==> 0.0.0.2";
     ok($filter->add_range_with_value($value1, '0.0.0.1', '0.0.0.2'), "Adding ('0.0.0.1', '0.0.0.2') to filter");
-    my $value2 = 'CIDR 0.0.0.1/24';
-    ok($filter->add_range_with_value($value2, '0.0.0.1/24'), "Adding '0.0.0.1/24' to filter");
+    my $value2 = 'CIDR 0.0.0.1/32';
+    ok($filter->add_range_with_value($value2, '0.0.0.1/32'), "Adding '0.0.0.1/32' to filter");
     is_deeply($filter->get_matches('0.0.0.1'), [ $value1, $value2 ], "get_matches() returns expected value fields");
+    is_deeply($filter->get_matches('0.0.0.3'), [ ], "get_matches() off-by-one check");
 }
 
 done_testing;
