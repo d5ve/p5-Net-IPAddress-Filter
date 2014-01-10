@@ -164,8 +164,9 @@ sub in_filter {
     my ( $self, $test_ip ) = @_;
 
     my $test_num = _ip_address_to_number($test_ip);
+    my $end_num  = $Set::IntervalTree::VERSION < 0.08 ? $test_num : $test_num + 1;
 
-    my $found = $self->{filter}->fetch( $test_num, $test_num + 1 ) || return 0;
+    my $found = $self->{filter}->fetch( $test_num, $end_num ) || return 0;
 
     return scalar @$found;
 }
@@ -187,8 +188,9 @@ sub get_matches {
     my ( $self, $test_ip ) = @_;
 
     my $test_num = _ip_address_to_number($test_ip);
+    my $end_num  = $Set::IntervalTree::VERSION < 0.08 ? $test_num : $test_num + 1;
 
-    return $self->{filter}->fetch( $test_num, $test_num + 1 );
+    return $self->{filter}->fetch( $test_num, $end_num );
 
 }
 
