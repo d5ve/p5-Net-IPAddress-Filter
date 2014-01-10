@@ -1,5 +1,15 @@
 {{$NEXT}}
 
+Fixes https://rt.cpan.org/Public/Bug/Display.html?id=91861
+
+Versions of Set::IntervalTree since 0.08 changed how it dealt with intervals,
+so inserting or checking for the same value as a range started die()ing. As a
+simple fix I just check for the version before doing operations on ranges so
+Net::IPAddress::Filter works for both old and new versions of
+Set::IntervalTree.
+
+Plus updated tests for CIDR ranges, as I confused /24 and /32.
+
 20121117  2012-11-17 09:02:20 Europe/London
 
 Now supports CIDR ranges. This adds a dependency on the pure perl module

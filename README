@@ -2,7 +2,7 @@ NAME
     Net::IPAddress::Filter - A compact and fast IP Address range filter
 
 VERSION
-    version 20121117
+    version 20140110
 
 SYNOPSIS
         my $filter = Net::IPAddress::Filter->new();
@@ -156,7 +156,7 @@ AUTHOR
     Dave Webb <Net-IPAddress-Filter@d5ve.com>
 
 COPYRIGHT AND LICENSE
-    This software is copyright (c) 2012 by Dave Webb.
+    This software is copyright (c) 2014 by Dave Webb.
 
     This is free software; you can redistribute it and/or modify it under
     the same terms as the Perl 5 programming language system itself.
