@@ -2,7 +2,7 @@ NAME
     Net::IPAddress::Filter - A compact and fast IP Address range filter
 
 VERSION
-    version 20140110
+    version 20140113
 
 SYNOPSIS
         my $filter = Net::IPAddress::Filter->new();
