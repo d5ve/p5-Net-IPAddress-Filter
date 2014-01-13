@@ -1,5 +1,7 @@
 {{$NEXT}}
 
+20140113  2014-01-13 11:21:12 Europe/Berlin
+
 Fixes https://rt.cpan.org/Public/Bug/Display.html?id=91861
 
 Versions of Set::IntervalTree since 0.08 changed how it dealt with intervals,
